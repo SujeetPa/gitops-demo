@@ -3,27 +3,39 @@ name: CI Pipeline
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'k8s/**'
+  pull_request:
+    branches: [main]
 
 env:
   AWS_REGION: ap-south-1
   ECR_REPO: gitops-demo
 
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-      - name: Set up Python          # ⬅️ ye add karo
+
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
-      - name: Run Unit Tests          # ⬅️ ye add karo
+      - name: Run Unit Tests
         run: |
           pip install flask pytest
-          cd app && pytest test_main.py -v          
+          cd app && pytest test_main.py -v
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -52,6 +64,9 @@ jobs:
           sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG|" k8s/deployment.yaml
           git config user.email "ci@github.com"
           git config user.name "GitHub Actions"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}
+          git fetch origin main
+          git checkout main
           git add k8s/deployment.yaml
           git commit -m "Update image to $IMAGE_TAG"
-          git push
+          git push origin main
