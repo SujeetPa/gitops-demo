@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: gitops-app
-          image: 952365419830.dkr.ecr.ap-south-1.amazonaws.com/gitops-demo:35c9ab9dd6be6beecc7cc7fcef465766a296f591
+          image: 952365419830.dkr.ecr.ap-south-1.amazonaws.com/gitops-demo:e38532dee21cc76112f91c3718550f12832f6bd1
           ports:
             - containerPort: 8080
